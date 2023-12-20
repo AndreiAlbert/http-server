@@ -55,53 +55,5 @@ int main() {
     HTTP_Server *srv = malloc(sizeof(HTTP_Server));
     init_server(srv, 8080, "./resources");
     start_server(srv);
-    //HTTP_Server *srv = malloc(sizeof(HTTP_Server));
-    //if(!srv) {
-        //perror("Memory allocation failed");
-        //return 1;
-    //}
-    //init_server(srv, PORT);
-    //while(true) {
-        //char *method = "";
-        //char *route = "";
-        //char client_socket_header[BUFFER_SIZE];
-        //int client_socket = accept(srv->socket, NULL, NULL);
-        //if(client_socket < 0) {
-            //perror("Failed to accept connection");
-            //continue;
-        //}
-        //size_t bytes = read(client_socket, client_socket_header, BUFFER_SIZE);
-        //if(bytes < 0) {
-            //perror("read");
-            //continue;
-        //}
-        //if(bytes < 3) {
-            //perror("not valid ");
-            //continue;
-        //}
-        //client_socket_header[bytes] = '\0';
-
-        //char *header = strtok(client_socket_header, "\n");
-        //char *header_token = strtok(header, " ");
-        //method = header_token;
-        //header_token = strtok(NULL, " ");
-        //route = header_token;
-
-        //printf("%s\n", method);
-        //printf("%s\n", route);
-
-        //char *path_to_resource = prepend_char(route, '.');
-        //char *resource_content = read_resource(path_to_resource);
-        //printf("%s\n", resource_content);
-
-        //char response[BUFFER_SIZE] = "HTTP/1.1 200 OK\r\n\r\n";
-        //strcat(response, resource_content);
-        //strcat(response, "\r\n\r\n");
-
-        //send(client_socket, response, strlen(response), 0);
-
-        //close(client_socket);
-    //}
-    //free(srv);
-    //return 0;
+    return 0;
 }
