@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #define PORT 8080
-#define BUFFER_SIZE 4096
 
 char *prepend_char(char* str, char chr) {
     size_t len = strlen(str);
@@ -54,64 +53,55 @@ char* read_resource(char *path_to_resource) {
 
 int main() {
     HTTP_Server *srv = malloc(sizeof(HTTP_Server));
-    if(!srv) {
-        perror("Memory allocation failed");
-        return 1;
-    }
-    init_server(srv, PORT);
-    while(true) {
-        char *method = "";
-        char *route = "";
-        char client_socket_header[BUFFER_SIZE];
-        int client_socket = accept(srv->socket, NULL, NULL);
-        if(client_socket < 0) {
-            perror("Failed to accept connection");
-            continue;
-        }
-        size_t bytes = read(client_socket, client_socket_header, BUFFER_SIZE);
-        if(bytes < 0) {
-            perror("read");
-            continue;
-        }
-        if(bytes < 3) {
-            perror("not valid ");
-            continue;
-        }
-        client_socket_header[bytes] = '\0';
+    init_server(srv, 8080, "./resources");
+    start_server(srv);
+    //HTTP_Server *srv = malloc(sizeof(HTTP_Server));
+    //if(!srv) {
+        //perror("Memory allocation failed");
+        //return 1;
+    //}
+    //init_server(srv, PORT);
+    //while(true) {
+        //char *method = "";
+        //char *route = "";
+        //char client_socket_header[BUFFER_SIZE];
+        //int client_socket = accept(srv->socket, NULL, NULL);
+        //if(client_socket < 0) {
+            //perror("Failed to accept connection");
+            //continue;
+        //}
+        //size_t bytes = read(client_socket, client_socket_header, BUFFER_SIZE);
+        //if(bytes < 0) {
+            //perror("read");
+            //continue;
+        //}
+        //if(bytes < 3) {
+            //perror("not valid ");
+            //continue;
+        //}
+        //client_socket_header[bytes] = '\0';
 
-        char *header = strtok(client_socket_header, "\n");
-        char *header_token = strtok(header, " ");
-        method = header_token;
-        header_token = strtok(NULL, " ");
-        route = header_token;
+        //char *header = strtok(client_socket_header, "\n");
+        //char *header_token = strtok(header, " ");
+        //method = header_token;
+        //header_token = strtok(NULL, " ");
+        //route = header_token;
 
-        printf("%s\n", method);
-        printf("%s\n", route);
+        //printf("%s\n", method);
+        //printf("%s\n", route);
 
-        char *path_to_resource = prepend_char(route, '.');
-        char *resource_content = read_resource(path_to_resource);
-        printf("%s\n", resource_content);
-
-        // construct response 
-        char response[BUFFER_SIZE] = "HTTP/1.1 200 OK\r\n\r\n";
-        strcat(response, resource_content);
-        strcat(response, "\r\n\r\n");
-
-        //send it
-        send(client_socket, response, strlen(response), 0);
-
-        //// here handle sending a response back 
-        //char* path_to_resource = prepend_char(route, '.');
+        //char *path_to_resource = prepend_char(route, '.');
         //char *resource_content = read_resource(path_to_resource);
-        //char response_header[4096] = "HTTP/1.1 200 OK\r\n\r\n";
-        //strcat(response_header, resource_content);
-        //strcat(response_header, "\r\n\r\n");
-//
-        //send(client_socket, response_header, strlen(response_header), 0);
-        //free(resource_content);
-        //free(path_to_resource);
-        close(client_socket);
-    }
-    free(srv);
-    return 0;
+        //printf("%s\n", resource_content);
+
+        //char response[BUFFER_SIZE] = "HTTP/1.1 200 OK\r\n\r\n";
+        //strcat(response, resource_content);
+        //strcat(response, "\r\n\r\n");
+
+        //send(client_socket, response, strlen(response), 0);
+
+        //close(client_socket);
+    //}
+    //free(srv);
+    //return 0;
 }
