@@ -19,7 +19,7 @@ static bool check_dir_exists(char *path) {
 }
 
 void init_server(HTTP_Server *srv, int port, char* resource_dir) {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    socket_t sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         perror("[ERRROR]: Could not init socket");
         exit(1);
@@ -75,7 +75,6 @@ static void parse_first_header_field(HTTP_Client* client, char* field) {
 
 void parse_http_header(HTTP_Client* client, char header[4097]) {
     char *headers = strdup(header);
-    printf("%s\n", headers);
     char *header_token = strtok(headers, "\r\n");
     size_t header_fields_index = 0;
     while(header_token) {
@@ -88,6 +87,7 @@ void parse_http_header(HTTP_Client* client, char header[4097]) {
         header_token = strtok(NULL, "\r\n");
         header_fields_index++;
     }
+    free(headers);
 }
 
 char** parse_request_route(HTTP_Client* client) {
@@ -97,6 +97,9 @@ char** parse_request_route(HTTP_Client* client) {
     while(pch) {
         i++;
         pch = strchr(pch + 1, '/');
+    }
+    if(i == 1) {
+        return NULL;
     }
     parsed_route = malloc(sizeof(char*) * (i + 1));
     if(!parsed_route) {
@@ -128,17 +131,104 @@ char** parse_request_route(HTTP_Client* client) {
     return parsed_route;
 }
 
-void handle_request_get(HTTP_Server* srv, HTTP_Client* client) {
-    DIR *d;
-    struct dirent* dir; 
-    d = opendir(srv->resource_dir);
-    if(d) {
-        while((dir = readdir(d)) != NULL) {
-            printf("%s\n", dir -> d_name);
-        }
-        closedir(d);
+void send_403_status(HTTP_Client* client, HTTP_Server* srv) {
+    const char http_server_err_403_page[] = "<!DOCTYPE html>"
+        "<html>"
+        "<head>"
+        "<title>403 Forbidden</title>"
+        "</head>"
+        "<body>"
+        "<h1>403 Forbidden</h1>"
+        "<p>"
+        "Access to this resource is forbidden."
+        "</p>" 
+        "</body>"
+        "</html>";
+    const char header[] = "HTTP/1.1 403 Forbidden\r\n"
+                          "Content-type: text/html\r\n"
+                          "Content-Length: ";
+    char content_length[50];
+    sprintf(content_length, "%lu\r\n\r\n", (unsigned long)strlen(http_server_err_403_page));
+    char response[4097];
+    response[0] = '\0';
+    strcat(response, header);
+    strcat(response, content_length);
+    strcat(response, http_server_err_403_page);
+    if(write(client -> socket, response, strlen(response)) < 0) {
+        fprintf(stderr, "Could not write to socket");
     }
-    parse_request_route(client);
+}
+
+static char* read_file(char* path_to_file) {
+    FILE* f = fopen(path_to_file, "rb");
+    if(f == NULL) {
+        fprintf(stderr, "Failed to read %s\n", path_to_file);
+        free(path_to_file);
+        return NULL;
+    }
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char* content_file = malloc(sizeof(char) * (file_size + 1));
+    if(!content_file) {
+        fprintf(stderr, "Could not allocate\n");
+        return NULL;
+    }
+    size_t index = 0; 
+    char ch;
+    while((ch = getc(f)) != EOF) {
+        content_file[index++] = ch;
+    }
+    fclose(f);
+    content_file[index] = '\0';
+    return content_file;
+}
+
+void send_file(HTTP_Client* client, HTTP_Server* srv, char* file) {
+    size_t path_size = strlen(srv->resource_dir) + strlen(file) + 2;
+    char* file_path = malloc(sizeof(char) * path_size);
+    if(!file_path) {
+        fprintf(stderr, "Could not allocate");
+        return;
+    }
+    file_path[0] = '\0';
+    strcat(file_path, srv->resource_dir);
+    file_path[strlen(file_path)] = '/';
+    file_path[strlen(file_path) + 1] = '\0';
+    strcat(file_path, file);
+    char* file_content = read_file(file_path);
+    const char header[] = "HTTP/1.1 200 OK\r\n"
+                          "Content-Length: ";
+    char content_length[50];
+    content_length[0] = '\0';
+    sprintf(content_length, "%lu\r\n\r\n", (unsigned long)strlen(file_content));
+    size_t response_size = strlen(header) + strlen(content_length) + strlen(file_content) + 1;
+    char *response = malloc(sizeof(char) * response_size);
+    response[0] = '\0';
+    strcat(response, header); 
+    strcat(response, content_length);
+    strcat(response, file_content);
+    if(write(client->socket, response, strlen(response)) < 0) {
+        fprintf(stderr, "Could not write");
+    }
+    free(response);
+}
+
+void handle_request_get(HTTP_Server* srv, HTTP_Client* client) {
+    char** parsed_route = parse_request_route(client);
+    if(parsed_route == NULL || parsed_route[0] == NULL){
+        send_403_status(client, srv);
+        return; 
+    }
+    if(strcmp(parsed_route[0], srv->resource_dir + 2) != 0) {
+        send_403_status(client, srv);
+        return;
+    }
+    else if(parsed_route[1] != NULL){
+        printf("youre cool\n");
+        send_file(client, srv, parsed_route[1]);
+    }
 }
 
 void handle_request(HTTP_Server* srv, HTTP_Client* client) {
@@ -173,12 +263,3 @@ void start_server(HTTP_Server* srv) {
         free(client);
     }
 }
-
-
-
-
-
-
-
-
-
